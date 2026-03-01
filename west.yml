@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# simplified manifest file
+
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: v4.3-branch
+      import:
+        name-allowlist:
+          - cmsis_6
+          - fatfs
+          - hal_nordic
+          - hal_nxp
+          - mbedtls
+          - mcuboot
+          - mcumgr
+          - segger
+          - tinycbor
+          - tinycrypt
+          - zcbor

@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config LIB_AC_CHARGE
+    bool "AC charge"
+    help
+        Enable AC charge library for EVSE.
+
+if LIB_CAN_DEMO
+
+endif # LIB_CAN_DEMO
+
+module = AC_CHARGE
+module-str = AC charge library
+source "subsys/logging/Kconfig.template.log_config"
