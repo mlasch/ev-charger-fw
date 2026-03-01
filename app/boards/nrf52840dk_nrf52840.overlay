@@ -1,0 +1,24 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+    aliases {
+        pwm-out = &pwm_led0;  /* reuse the existing node */
+    };
+};
+
+/* Only needed if you want a different pin than the board default */
+&pinctrl {
+    pwm0_default: pwm0_default {
+        group1 {
+            psels = <NRF_PSEL(PWM_OUT0, 0, 13)>;
+        };
+    };
+    pwm0_sleep: pwm0_sleep {
+        group1 {
+            psels = <NRF_PSEL(PWM_OUT0, 0, 13)>;
+            low-power-enable;
+        };
+    };
+};
