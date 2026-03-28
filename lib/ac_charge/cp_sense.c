@@ -16,6 +16,9 @@ LOG_MODULE_REGISTER(cp_sense, CONFIG_AC_CHARGE_LOG_LEVEL);
 #define CP_SAMPLE_RATE_HZ     20000U
 #define CP_SAMPLE_COUNT       400U
 #define CP_UPDATE_INTERVAL_MS 100U
+#define CP_SAMPLE_INTERVAL_US (1000000U / CP_SAMPLE_RATE_HZ)
+#define CP_THREAD_STACK_SIZE  3072U
+#define CP_THREAD_PRIORITY    8
 
 struct cp_measurement_internal {
     bool valid;
@@ -32,13 +35,21 @@ static K_MUTEX_DEFINE(g_latest_lock);
 
 static const struct adc_dt_spec cp_adc = ADC_DT_SPEC_GET(CP_ADC_NODE);
 static int16_t cp_samples[CP_SAMPLE_COUNT];
-static struct k_work_delayable cp_measure_work;
+static K_THREAD_STACK_DEFINE(cp_thread_stack, CP_THREAD_STACK_SIZE);
+static struct k_thread cp_thread_data;
+static bool cp_thread_started;
 
 static int cp_capture_samples(void)
 {
+    struct adc_sequence_options options = {
+        .interval_us = CP_SAMPLE_INTERVAL_US,
+        .extra_samplings = CP_SAMPLE_COUNT - 1U,
+    };
+
     struct adc_sequence sequence = {
         .buffer = cp_samples,
         .buffer_size = sizeof(cp_samples),
+        .options = &options,
     };
 
     int ret = adc_sequence_init_dt(&cp_adc, &sequence);
@@ -131,16 +142,14 @@ static void cp_analyze_samples(struct cp_measurement_internal *out)
     out->valid = true;
 }
 
-static void cp_measure_work_handler(struct k_work *work)
+static void cp_measure_once(void)
 {
-    ARG_UNUSED(work);
-
     struct cp_measurement_internal next = {0};
 
     int ret = cp_capture_samples();
     if (ret < 0) {
         LOG_ERR("ADC read failed: %d", ret);
-        goto schedule_next;
+        return;
     }
 
     cp_analyze_samples(&next);
@@ -152,9 +161,18 @@ static void cp_measure_work_handler(struct k_work *work)
         LOG_DBG("CP: %u Hz, %u.%u%%, raw[%d..%d]", next.frequency_hz, next.duty_per_mille / 10U,
                 next.duty_per_mille % 10U, next.min_raw, next.max_raw);
     }
+}
 
-schedule_next:
-    k_work_schedule(&cp_measure_work, K_MSEC(CP_UPDATE_INTERVAL_MS));
+static void cp_measure_thread(void *arg1, void *arg2, void *arg3)
+{
+    ARG_UNUSED(arg1);
+    ARG_UNUSED(arg2);
+    ARG_UNUSED(arg3);
+
+    while (true) {
+        cp_measure_once();
+        k_sleep(K_MSEC(CP_UPDATE_INTERVAL_MS));
+    }
 }
 
 int cp_sense_init(void)
@@ -170,8 +188,14 @@ int cp_sense_init(void)
         return ret;
     }
 
-    k_work_init_delayable(&cp_measure_work, cp_measure_work_handler);
-    k_work_schedule(&cp_measure_work, K_NO_WAIT);
+    if (!cp_thread_started) {
+        k_tid_t tid = k_thread_create(
+            &cp_thread_data, cp_thread_stack, K_THREAD_STACK_SIZEOF(cp_thread_stack),
+            cp_measure_thread, NULL, NULL, NULL, K_PRIO_PREEMPT(CP_THREAD_PRIORITY), 0, K_NO_WAIT);
+        k_thread_name_set(tid, "cp_sense");
+        cp_thread_started = true;
+    }
+
     LOG_INF("CP sensing started (%u ksps, %u ms window)", CP_SAMPLE_RATE_HZ / 1000U,
             (1000U * CP_SAMPLE_COUNT) / CP_SAMPLE_RATE_HZ);
 

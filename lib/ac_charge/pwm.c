@@ -37,7 +37,7 @@ int init_ac_charge(void)
     }
 
     LOG_INF("Starting 1 kHz PWM at 50%% duty cycle");
-    int ret = set_duty_cycle_percent(50);
+    int ret = set_duty_cycle_percent(60);
     if (ret < 0) {
         return ret;
     }
