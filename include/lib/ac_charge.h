@@ -13,6 +13,27 @@ struct cp_measurement {
     int16_t max_raw;
 };
 
+enum ac_charge_state {
+    AC_CHARGE_STATE_IDLE = 0,
+    AC_CHARGE_STATE_CONNECTED,
+    AC_CHARGE_STATE_READY,
+    AC_CHARGE_STATE_VENTILATION,
+    AC_CHARGE_STATE_FAULT,
+};
+
+enum ac_charge_event {
+    AC_CHARGE_EVENT_NONE = 0,
+    AC_CHARGE_EVENT_EV_CONNECTED,
+    AC_CHARGE_EVENT_EV_DISCONNECTED,
+    AC_CHARGE_EVENT_EV_READY,
+    AC_CHARGE_EVENT_EV_NOT_READY,
+    AC_CHARGE_EVENT_VENTILATION_REQUIRED,
+    AC_CHARGE_EVENT_VENTILATION_CLEARED,
+    AC_CHARGE_EVENT_FAULT_DETECTED,
+    AC_CHARGE_EVENT_FAULT_CLEARED,
+    AC_CHARGE_EVENT_COUNT,
+};
+
 /**
  * Set PWM duty cycle
  * @param percent
@@ -38,3 +59,28 @@ int cp_sense_init(void);
  * @return 0 when a valid sample is available, -EAGAIN if not yet available.
  */
 int cp_sense_get_latest(struct cp_measurement *out);
+
+/**
+ * Initialize AC charge state machine.
+ */
+int ac_charge_sm_init(void);
+
+/**
+ * Post an external event to the state machine.
+ */
+int ac_charge_sm_post_event(enum ac_charge_event event);
+
+/**
+ * Execute one state machine step.
+ */
+int ac_charge_sm_step(void);
+
+/**
+ * Read current state.
+ */
+enum ac_charge_state ac_charge_sm_get_state(void);
+
+/**
+ * Optional helper: post transitions derived from CP measurement.
+ */
+void ac_charge_sm_update_from_cp(const struct cp_measurement *cp);

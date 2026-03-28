@@ -31,19 +31,19 @@ int set_duty_cycle_percent(uint8_t percent)
 
 int init_ac_charge(void)
 {
+    int ret;
     if (!pwm_is_ready_dt(&cp_pwm)) {
         LOG_ERR("PWM device not ready");
         return -ENODEV;
     }
 
-    LOG_INF("Starting 1 kHz PWM at 50%% duty cycle");
-    int ret = set_duty_cycle_percent(50);
-    if (ret < 0) {
+    ret = cp_sense_init();
+    if ((ret < 0) && (ret != -ENOTSUP)) {
         return ret;
     }
 
-    ret = cp_sense_init();
-    if ((ret < 0) && (ret != -ENOTSUP)) {
+    ret = ac_charge_sm_init();
+    if (ret < 0) {
         return ret;
     }
 

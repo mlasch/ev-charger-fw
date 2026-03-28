@@ -4,4 +4,5 @@ zephyr_library()
 zephyr_library_sources(
 	pwm.c
 	cp_sense.c
+	charge_state.c
 )
