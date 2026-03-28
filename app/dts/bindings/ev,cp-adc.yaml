@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: EV charger control pilot ADC endpoint
+
+compatible: "zephyr,cp-adc"
+
+include: base.yaml
+
+properties:
+  io-channels:
+    type: phandle-array
+    required: true
+    description: ADC channel used to sample the conditioned control pilot signal.

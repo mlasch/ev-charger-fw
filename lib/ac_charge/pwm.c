@@ -5,8 +5,10 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(pwm, CONFIG_AC_CHARGE_LOG_LEVEL);
 
-#include <zephyr/kernel.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/kernel.h>
+
+#include <lib/ac_charge.h>
 
 static const struct pwm_dt_spec pwm_out = PWM_DT_SPEC_GET(DT_ALIAS(pwm_out));
 
@@ -37,6 +39,11 @@ int init_ac_charge(void)
     LOG_INF("Starting 1 kHz PWM at 50%% duty cycle");
     int ret = set_duty_cycle_percent(50);
     if (ret < 0) {
+        return ret;
+    }
+
+    ret = cp_sense_init();
+    if ((ret < 0) && (ret != -ENOTSUP)) {
         return ret;
     }
 
