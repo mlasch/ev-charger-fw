@@ -28,7 +28,7 @@
         zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 20)>;
         zephyr,input-positive = <NRF_SAADC_AIN1>; /* P0.03 / Arduino A0 */
         zephyr,resolution = <12>;
-        zephyr,oversampling = <4>;
+        zephyr,oversampling = <0>;
     };
 };
 

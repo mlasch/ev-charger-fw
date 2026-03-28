@@ -154,12 +154,18 @@ static void cp_measure_once(void)
 
     cp_analyze_samples(&next);
     if (next.valid) {
+        int32_t min_mv = next.min_raw;
+        int32_t max_mv = next.max_raw;
+        (void)adc_raw_to_millivolts_dt(&cp_adc, &min_mv);
+        (void)adc_raw_to_millivolts_dt(&cp_adc, &max_mv);
+
         k_mutex_lock(&g_latest_lock, K_FOREVER);
         g_latest = next;
         k_mutex_unlock(&g_latest_lock);
 
-        LOG_DBG("CP: %u Hz, %u.%u%%, raw[%d..%d]", next.frequency_hz, next.duty_per_mille / 10U,
-                next.duty_per_mille % 10U, next.min_raw, next.max_raw);
+        LOG_DBG("CP: %u Hz, %u.%u%%, raw[%d..%d], mv[%d..%d]", next.frequency_hz,
+                next.duty_per_mille / 10U, next.duty_per_mille % 10U, next.min_raw, next.max_raw,
+                (int)min_mv, (int)max_mv);
     }
 }
 
