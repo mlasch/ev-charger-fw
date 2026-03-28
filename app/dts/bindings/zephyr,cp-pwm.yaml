@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: EV charger control pilot PWM endpoint
+
+compatible: "zephyr,cp-pwm"
+
+include: base.yaml
+
+properties:
+  pwms:
+    type: phandle-array
+    required: true
+    description: PWM output used to generate the control pilot signal.

@@ -6,8 +6,13 @@
 
 / {
     aliases {
-        pwm-out = &pwm_led0;  /* reuse the existing node */
+        cp-pwm = &cp_pwm;
         cp-adc = &cp_adc;
+    };
+
+    cp_pwm: pwm_cp_0 {
+        compatible = "zephyr,cp-pwm";
+        pwms = <&pwm0 0 PWM_MSEC(1) PWM_POLARITY_NORMAL>;
     };
 
     cp_adc: cp-adc {
