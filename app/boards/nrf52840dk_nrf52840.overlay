@@ -37,16 +37,16 @@
     };
 };
 
-/* Only needed if you want a different pin than the board default */
+/* Set CP PWM pin */
 &pinctrl {
     pwm0_default: pwm0_default {
         group1 {
-            psels = <NRF_PSEL(PWM_OUT0, 0, 13)>;
+            psels = <NRF_PSEL(PWM_OUT0, 0, 4)>;
         };
     };
     pwm0_sleep: pwm0_sleep {
         group1 {
-            psels = <NRF_PSEL(PWM_OUT0, 0, 13)>;
+            psels = <NRF_PSEL(PWM_OUT0, 0, 4)>;
             low-power-enable;
         };
     };
