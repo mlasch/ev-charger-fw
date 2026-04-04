@@ -247,24 +247,46 @@ enum ac_charge_state ac_charge_sm_get_state(void)
 
 void ac_charge_sm_update_from_cp(const struct cp_measurement *cp)
 {
-    if ((cp == NULL) || !cp->valid) {
+    if (cp == NULL) {
         return;
     }
 
     /*
-     * Best-effort CP interpretation using the conditioned 0..3V signal.
-     * Approximate mapping used for transitions:
-     *  - max ~2.4V..2.9V -> connected
-     *  - max ~2.0V..2.4V -> ready
-     *  - max ~1.6V..2.0V -> ventilation
+     * Pick a representative CP voltage sample.
+     *
+     * IEC 61851 state A (no vehicle) and state B (vehicle connected) are both
+     * static DC levels (+12 V and +9 V respectively); the charger only starts
+     * the 1 kHz PWM after detecting the vehicle. As a result, on the very
+     * first connect the CP signal has no PWM and cp->valid is false, but the
+     * captured min/max raw samples still reflect the DC level.
+     *
+     * - When PWM is present, the positive plateau (max_raw) encodes the state.
+     * - When PWM is absent (DC), min_raw ~= max_raw, so the average works for
+     *   both cases and lets us transition out of IDLE on first connect.
      */
-    if (cp->max_raw > 3700) {
+    int32_t level_raw;
+    if (cp->valid) {
+        level_raw = cp->max_raw;
+    } else {
+        level_raw = ((int32_t)cp->min_raw + (int32_t)cp->max_raw) / 2;
+    }
+
+    /*
+     * Best-effort CP interpretation using the conditioned 0..3V signal.
+     * Approximate mapping used for transitions (raw ADC counts):
+     *  - >3700  -> +12V  : disconnected (state A)
+     *  - >3400  -> +9V   : connected    (state B)
+     *  - >2800  -> +6V   : ready        (state C)
+     *  - >2100  -> +3V   : ventilation  (state D)
+     *  - else           : fault        (state E/F)
+     */
+    if (level_raw > 3700) {
         (void)ac_charge_sm_post_event(AC_CHARGE_EVENT_EV_DISCONNECTED);
-    } else if (cp->max_raw > 3400) {
+    } else if (level_raw > 3400) {
         (void)ac_charge_sm_post_event(AC_CHARGE_EVENT_EV_CONNECTED);
-    } else if (cp->max_raw > 2800) {
+    } else if (level_raw > 2800) {
         (void)ac_charge_sm_post_event(AC_CHARGE_EVENT_EV_READY);
-    } else if (cp->max_raw > 2100) {
+    } else if (level_raw > 2100) {
         (void)ac_charge_sm_post_event(AC_CHARGE_EVENT_VENTILATION_REQUIRED);
     } else {
         (void)ac_charge_sm_post_event(AC_CHARGE_EVENT_FAULT_DETECTED);
