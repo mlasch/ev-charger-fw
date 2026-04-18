@@ -134,6 +134,13 @@ static enum smf_state_result ac_ready_run(void *obj)
         ac_set_state(ctx, AC_SM_VENTILATION);
         break;
     case AC_CHARGE_EVENT_EV_NOT_READY:
+    /*
+     * The CP level decoder doesn't track the previous state, so when the
+     * vehicle drops the S2 switch (state C -> state B) it just re-emits
+     * EV_CONNECTED for the +9V plateau. Treat that as "no longer ready"
+     * here so READY -> CONNECTED actually happens.
+     */
+    case AC_CHARGE_EVENT_EV_CONNECTED:
         ac_set_state(ctx, AC_SM_CONNECTED);
         break;
     case AC_CHARGE_EVENT_FAULT_DETECTED:
@@ -163,7 +170,12 @@ static enum smf_state_result ac_vent_run(void *obj)
         ac_set_state(ctx, AC_SM_IDLE);
         break;
     case AC_CHARGE_EVENT_VENTILATION_CLEARED:
+    /* See note in ac_ready_run: CP decoder re-emits EV_CONNECTED for +9V. */
+    case AC_CHARGE_EVENT_EV_CONNECTED:
         ac_set_state(ctx, AC_SM_CONNECTED);
+        break;
+    case AC_CHARGE_EVENT_EV_READY:
+        ac_set_state(ctx, AC_SM_READY);
         break;
     case AC_CHARGE_EVENT_FAULT_DETECTED:
         ac_set_state(ctx, AC_SM_FAULT);
